@@ -1,5 +1,11 @@
 t # Stateful event processing
 
+Go multiple levels deep
+Join on primary and non-primary keys depending on the particular relation
+Preferably perform multiple joins without writing intermediate results out to different topics or adding operational complexity
+Not be windowed joins on time series data
+All input topics are treated as if they were ‘tables’
+Support 1 to 1, 1 to many, and many to 1 relations
 ## An example 
 
 Imagine we are github, The problem begins where we want move to the event driven world by capturing events and emitting them from the application.now imagine we decide to do a data replication from database to AWS and other shiny cloud solutions.
@@ -22,7 +28,6 @@ The entities application works with are as follows:
 - registered_at
 - type (org,person)
 
-
 Pk: username
 
 **Repo**
@@ -34,17 +39,24 @@ Pk: username
 - created_at
 - updated_at
 
-
 Pk: (owner,name)
 
 **Pull Request**
 - repo
+- repo_owner
 - index
 - author
-- related_issue
 - created_at
-- updated_at
-Pk: (repo,index)
+
+Pk: (repo, repo_owner,index)
+
+**Star**
+- username
+- repo_name
+- repo_owner
+- created_at
+
+Pk: (username, repo_name, repo_owner)
 
 **Issue**
 - repo
@@ -54,6 +66,7 @@ Pk: (repo,index)
 - status
 - created_at
 - updated_at
+    
 Pk (repo,index)
 
 **Comment**
@@ -63,17 +76,8 @@ Pk (repo,index)
 - reply_to
 - body
 
-
 Pk: (id)
 
-**Star**
-- username
-- repo_name
-- repo_owner
-- created_at
-
-
-Pk: (username, repo_name, repo_owner)
 
 ## Data Product
 Let's say we want our streaming application to consume CDC events from above tables and create following entities from it:
@@ -81,17 +85,22 @@ Let's say we want our streaming application to consume CDC events from above tab
 **User Profile**
 - email
 - username
-- stars_received
-- total_pull_request_count
+- starred_repos (many to many rel)
+    - repo = repo_name/repo_owner
+    - description
+- opened_pull_requests (one to many rel)
+    - repo = repo_name/repo_owner
+    - index
+    - title
+    - created_at
+    - status
 
 Filter user events on type
 
-Left join on PR table and count pull requests by user
+Left join on PR table and add all user PR to record
+Left join on star table and add all repo names that user starred
 
-Left join on start table and count stars received
-
-
-** Org Profile **
+**Org Profile**
 - members
 - name
 - 10_x_dev (the person who contributed the most to Org Repos)
