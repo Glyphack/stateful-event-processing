@@ -1,4 +1,4 @@
-# Stateful event processing
+t # Stateful event processing
 
 ## An example 
 
@@ -21,7 +21,9 @@ The entities application works with are as follows:
 - username
 - registered_at
 - type (org,person)
-pk: username
+
+
+Pk: username
 
 **Repo**
 - name
@@ -31,7 +33,9 @@ pk: username
 - fork_count
 - created_at
 - updated_at
-pk: (owner,name)
+
+
+Pk: (owner,name)
 
 **Pull Request**
 - repo
@@ -40,7 +44,7 @@ pk: (owner,name)
 - related_issue
 - created_at
 - updated_at
-pk: (repo,index)
+Pk: (repo,index)
 
 **Issue**
 - repo
@@ -50,7 +54,7 @@ pk: (repo,index)
 - status
 - created_at
 - updated_at
-pk (repo,index)
+Pk (repo,index)
 
 **Comment**
 - id
@@ -58,14 +62,18 @@ pk (repo,index)
 - related_entity_id
 - reply_to
 - body
-pk: (id)
+
+
+Pk: (id)
 
 **Star**
 - username
 - repo_name
 - repo_owner
 - created_at
-pk: (username, repo_name, repo_owner)
+
+
+Pk: (username, repo_name, repo_owner)
 
 ## Data Product
 Let's say we want our streaming application to consume CDC events from above tables and create following entities from it:
@@ -77,8 +85,10 @@ Let's say we want our streaming application to consume CDC events from above tab
 - total_pull_request_count
 
 Filter user events on type
+
 Left join on PR table and count pull requests by user
-left join on start table and count stars received
+
+Left join on start table and count stars received
 
 
 ** Org Profile **
@@ -87,4 +97,8 @@ left join on start table and count stars received
 - 10_x_dev (the person who contributed the most to Org Repos)
 
 Filter user events on type
-left join on PR table and find the person in the org with max PR count in all org Repos
+
+Left join on PR table
+
+Find the person in the org with max PR count in all org Repos
+
