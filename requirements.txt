@@ -1,0 +1,4 @@
+requests
+certifi
+confluent-kafka[avro]>=1.4.2
+python-dotenv
