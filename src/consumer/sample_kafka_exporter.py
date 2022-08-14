@@ -25,43 +25,76 @@ c = AvroConsumer({
     'enable.auto.commit': False 
     })
 
-c.subscribe(['sea_vessel_position_reports'])
 
+def insert_to_database(conf: Dict[str, Any], bulk_data: List[Dict[str, Any]]):
+    print('Inserting to DB...')
+    data = []
 
-def insert_to_database(bulk_data: List[Dict[str, Any]]):
-    data = [(i['MMSI'], i['Longitude'], i['Latitude'], str(i['Type'])) for i in bulk_data]
+    # TODO: Refactor this part
+    for i in bulk_data:
+        tmp = {k: i[k] for k in conf['event_field_to_table_mapping'].keys()}.values()
+        data.append(tuple(tmp))
 
-    query = 'INSERT INTO sea_vessel_positions (MMSI, Longitude, Latitude, Type) values %s'
+    db_tables = ','.join(conf['event_field_to_table_mapping'].values())
+    query = f"INSERT INTO {conf['table_name']} ({db_tables}) values %s"
     psycopg2.extras.execute_values(
         cur, query, data
     )
     conn.commit()
     
 
+def consume_and_process_message(conf: Dict[str, Any]):
+    """
+    Consume and insert messages from given topic to given
+    database table.
+    """
+    # TODO: investigate to see how can we handle multiple topics multithreaded
+    c.subscribe([conf['topic_name']])
+    bulk_msg = []
+    while True:
+        print("Running")
+        try:
+            msg = c.poll(5)
+
+        except SerializerError as e:
+            print("Message deserialization failed for {}: {}".format(msg, e))
+            break
+
+        if msg is None:
+            continue
+
+        if msg.error():
+            print("AvroConsumer error: {}".format(msg.error()))
+            continue
+        
+        bulk_msg.append(msg.value())
+        if len(bulk_msg) == MAX_CHUNK_SIZE:
+            print('Inserting to db...')
+            insert_to_database(conf, bulk_msg)
+            bulk_msg.clear()
+
+
+
+conf = {
+    'topic_name': 'sea_vessel_position_reports',
+    'table_name': 'sea_vessel_positions',
+    'table_schema': [
+        "id SERIAL PRIMARY KEY",
+        "MMSI INTEGER",
+        "Longitude real",
+        "Latitude real",
+        "Type char(1))"
+    ],
+    'event_field_to_table_mapping': {
+        'MMSI': 'MMSI',
+        'Longitude': 'Longitude',
+        'Latitude': 'Latitude',
+        'Type': 'Type'
+    }
+}
+
 print("Starting...")
 
-
-bulk_msg = []
-while True:
-    print("Running")
-    try:
-        msg = c.poll(5)
-
-    except SerializerError as e:
-        print("Message deserialization failed for {}: {}".format(msg, e))
-        break
-
-    if msg is None:
-        continue
-
-    if msg.error():
-        print("AvroConsumer error: {}".format(msg.error()))
-        continue
-    
-    bulk_msg.append(msg.value())
-    if len(bulk_msg) == MAX_CHUNK_SIZE:
-        print('Inserting to db...')
-        insert_to_database(bulk_msg)
-        bulk_msg.clear()
+consume_and_process_message(conf)
 
 c.close()
