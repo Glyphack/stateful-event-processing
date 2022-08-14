@@ -4,6 +4,8 @@ from confluent_kafka.avro.serializer import SerializerError
 import psycopg2
 import psycopg2.extras
 
+import sample_db_publisher
+
 MAX_CHUNK_SIZE = 4
 
 
@@ -83,7 +85,7 @@ conf = {
         "MMSI INTEGER",
         "Longitude real",
         "Latitude real",
-        "Type char(1))"
+        "Type char(1)"
     ],
     'event_field_to_table_mapping': {
         'MMSI': 'MMSI',
@@ -95,6 +97,7 @@ conf = {
 
 print("Starting...")
 
+sample_db_publisher.create_tables_queries(conn, conf)
 consume_and_process_message(conf)
 
 c.close()
