@@ -88,7 +88,7 @@ Let's say we want our streaming application to consume CDC events from above tab
 - starred_repos (many to many rel)
     - repo = repo_name/repo_owner
     - description
-- opened_pull_requests (one to many rel)
+- pull_requests (one to many rel)
     - repo = repo_name/repo_owner
     - index
     - title
